@@ -134,3 +134,5 @@ build_artifacts
 
 # minian intermediate
 minian_intermediate
+
+.DS_Store

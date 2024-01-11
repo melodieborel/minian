@@ -521,7 +521,6 @@ def est_motion_perframe(
         upsample_factor=upsample,
     )
     if mesh_size is None:
-        print(sh)
         return -sh
     src = sitk.GetImageFromArray(src.astype(np.float32))
     dst = sitk.GetImageFromArray(dst.astype(np.float32))
