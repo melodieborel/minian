@@ -256,7 +256,7 @@ def load_avi_ffmpeg(fname: str, h: int, w: int, f: int) -> np.ndarray:
     """
     out_bytes, err = (
         ffmpeg.input(fname)
-        .video.output("pipe:", format="rawvideo", pix_fmt="gray")
+        .video.output("pipe:", format="rawvideo", pix_fmt="gray", loglevel="error")
         .run(capture_stdout=True)
     )
     return np.frombuffer(out_bytes, np.uint8).reshape(f, h, w)
@@ -831,10 +831,12 @@ class TaskAnnotation(SchedulerPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.annt_dict = ANNOTATIONS
-
-    def update_graph(self, scheduler, client, tasks, **kwargs):
+    """
+    def update_graph(self, scheduler, client, keys, tasks, **kwargs):
         parent = cast(SchedulerState, scheduler)
-        for tk in tasks.keys():
+        for tk0 in keys:
+            tk = tk0[0]
+            print(tk)
             for pattern, annt in self.annt_dict.items():
                 if re.search(pattern, tk):
                     ts = parent._tasks.get(tk)
@@ -845,7 +847,7 @@ class TaskAnnotation(SchedulerPlugin):
                     if pri:
                         pri_org = list(ts._priority)
                         pri_org[0] = -pri
-                        ts._priority = tuple(pri_org)
+                        ts._priority = tuple(pri_org)"""
 
 
 def custom_arr_optimize(
@@ -856,6 +858,7 @@ def custom_arr_optimize(
     rename_dict: Optional[dict] = None,
     rewrite_dict: Optional[dict] = None,
     keep_patterns=[],
+    **kwargs
 ) -> dict:
     """
     Customized implementation of array optimization function.

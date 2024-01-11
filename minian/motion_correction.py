@@ -515,13 +515,13 @@ def est_motion_perframe(
     --------
     estimate_motion : for detailed explanation of parameters
     """
-    sh = phase_cross_correlation(
+    sh,err,phaseDiff = phase_cross_correlation(
         src,
         dst,
         upsample_factor=upsample,
-        return_error=False,
     )
     if mesh_size is None:
+        print(sh)
         return -sh
     src = sitk.GetImageFromArray(src.astype(np.float32))
     dst = sitk.GetImageFromArray(dst.astype(np.float32))

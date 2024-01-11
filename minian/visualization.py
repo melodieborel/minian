@@ -213,8 +213,8 @@ class VArrayViewer:
             )
             self.xyrange = RangeXY(source=im).rename(x_range="w", y_range="h")
             if not self._layout:
-                hv_box = hv.Polygons([]).opts(
-                    style={"fill_alpha": 0.3, "line_color": "white"}
+                hv_box = hv.Polygons([]).options(
+                    fill_alpha=0.3, line_color="white"
                 )
                 self.str_box = BoxEdit(source=hv_box)
                 im_ovly = im * hv_box
@@ -230,15 +230,15 @@ class VArrayViewer:
                     cur_im = hv.Image(
                         ds.sel(frame=f).compute(), kdims=["width", "height"]
                     )
-                return hv.operation.histogram(cur_im, num_bins=50).opts(
+                return hv.operation.histogram(cur_im, num_bins=50).options(
                     xlabel="fluorescence", ylabel="freq"
                 )
 
             fhist = fct.partial(hist, ds=curds)
-            his = hv.DynamicMap(fhist, streams=[self.strm_f, self.xyrange]).opts(
+            his = hv.DynamicMap(fhist, streams=[self.strm_f, self.xyrange]).options(
                 frame_height=int(500 * self._h / self._w), width=150, cmap="Viridis"
             )
-            im_ovly = (im_ovly << his).map(lambda p: p.opts(style=dict(cmap="Viridis")))
+            im_ovly = (im_ovly << his).map(lambda p: p)#.opts(style=dict(cmap="Viridis")))
             return im_ovly
 
         if self._layout and self.meta_dicts:
@@ -261,11 +261,11 @@ class VArrayViewer:
                 hvsum = hvsum.layout(list(self.meta_dicts.keys()))
             except:
                 pass
-            vl = hv.DynamicMap(lambda f: hv.VLine(f), streams=[self.strm_f]).opts(
-                style=dict(color="red")
+            vl = hv.DynamicMap(lambda f: hv.VLine(f), streams=[self.strm_f]).options(
+                color="red"
             )
             summ = (hvsum * vl).map(
-                lambda p: p.opts(frame_width=500, aspect=3), [hv.RGB, hv.Curve]
+                lambda p: p.options(frame_width=500, aspect=3), [hv.RGB, hv.Curve]
             )
             hvobj = (ims + summ).cols(1)
         else:
@@ -1419,7 +1419,7 @@ def datashade_ndcurve(
     color_key = [(v, Category10_10[iv]) for iv, v in enumerate(var)]
     color_pts = hv.NdOverlay(
         {
-            k: hv.Points([0, 0], label=str(k)).opts(style=dict(color=v))
+            k: hv.Points([0, 0], label=str(k)).options(color=v)
             for k, v in color_key
         }
     )
