@@ -84,7 +84,7 @@ def get_noise_fft(
         kwargs=dict(
             noise_range=noise_range, noise_method=noise_method, threads=threads
         ),
-        output_dtypes=[np.float],
+        output_dtypes=[float],
     )
     return sn
 
@@ -122,7 +122,9 @@ def noise_fft(
     """
     _T = len(px)
     nr = np.around(np.array(noise_range) * _T).astype(int)
-    px = 1 / _T * np.abs(numpy_fft.rfft(px, threads=threads)[nr[0] : nr[1]]) ** 2
+    temp = px.astype(np.float128)
+    temp = 1 / _T * np.abs(numpy_fft.rfft(temp, threads=threads)[nr[0] : nr[1]]) ** 2
+    px = temp.astype(np.float64)
     if noise_method == "mean":
         return np.sqrt(px.mean())
     elif noise_method == "median":
@@ -389,7 +391,7 @@ def update_spatial(
             else:
                 cur_blk = darr.array(sparse.zeros((cur_sub.shape)))
             A_new[hblk, wblk, 0] = cur_blk
-        A_new = darr.block(A_new.tolist())
+        A_new = darr.block(A_new)
     else:
         A_new = update_spatial_block(
             Y_trans.data,
@@ -1512,10 +1514,10 @@ def label_connected(adj: np.ndarray, only_connected=False) -> np.ndarray:
     try:
         np.fill_diagonal(adj, 0)
         adj = np.triu(adj)
-        g = nx.convert_matrix.from_numpy_matrix(adj)
+        g = nx.from_numpy_array(adj)
     except:
-        g = nx.convert_matrix.from_scipy_sparse_matrix(adj)
-    labels = np.zeros(adj.shape[0], dtype=np.int)
+        g = nx.from_scipy_sparse_array(adj)
+    labels = np.zeros(adj.shape[0], dtype=int)
     for icomp, comp in enumerate(nx.connected_components(g)):
         comp = list(comp)
         if only_connected and len(comp) == 1:
@@ -1799,8 +1801,8 @@ def graph_optimize_corr(
             npxs.append(len(pixels))
             pixels = set()
             eg_ls = []
-    print("pixel recompute ratio: {}".format(sum(npxs) / G.number_of_nodes()))
-    print("computing correlations")
+    #print("pixel recompute ratio: {}".format(sum(npxs) / G.number_of_nodes()))
+    #print("computing correlations")
     corr_ls = da.compute(corr_ls)[0]
     corr = pd.Series(np.concatenate(corr_ls), index=np.concatenate(idx_ls), name="corr")
     eg_df["corr"] = corr

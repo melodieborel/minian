@@ -444,7 +444,7 @@ def save_minian(
     overwrite=False,
     chunks: Optional[dict] = None,
     compute=True,
-    mem_limit="500MB",
+    mem_limit="2000MB",
 ) -> xr.DataArray:
     """
     Save a `xr.DataArray` with `zarr` storage backend following minian
@@ -522,6 +522,7 @@ def save_minian(
         except FileNotFoundError:
             pass
     arr = ds.to_zarr(fp, compute=compute, mode=md)
+    print(ds.dims)
     if (chunks is not None) and compute:
         chunks = {d: var.sizes[d] if v <= 0 else v for d, v in chunks.items()}
         dst_path = os.path.join(dpath, str(uuid4()))

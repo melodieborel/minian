@@ -1662,23 +1662,17 @@ def visualize_preprocess(
     """
     fh, fw = fm.sizes["height"], fm.sizes["width"]
     asp = fw / fh
-    opts_im = {
-        "plot": {
-            "frame_width": 500,
-            "aspect": asp,
-            "title": "Image {label} {group} {dimensions}",
-        },
-        "style": {"cmap": "viridis"},
-    }
-    opts_cnt = {
-        "plot": {
-            "frame_width": 500,
-            "aspect": asp,
-            "title": "Contours {label} {group} {dimensions}",
-        },
-        "style": {"cmap": "viridis"},
-    }
-
+    opts_im = dict(
+        frame_width=500,
+        aspect=asp,
+        title="Image {label} {group} {dimensions}",
+        cmap=Viridis256,
+    )
+    opts_cnt = dict(
+        frame_width=500,
+        aspect=asp,
+        title="Contours {label} {group} {dimensions}",
+    )
     def _vis(f):
         im = hv.Image(f, kdims=["width", "height"]).opts(**opts_im)
         cnt = hv.operation.contours(im).opts(**opts_cnt)
@@ -1750,7 +1744,7 @@ def visualize_seeds(
     h, w = max_proj.sizes["height"], max_proj.sizes["width"]
     asp = w / h
     pt_cmap = {True: "white", False: "red"}
-    opts_im = dict(plot=dict(frame_width=600, aspect=asp), style=dict(cmap="Viridis"))
+    opts_im = dict(frame_width=600, aspect=asp, cmap="Viridis")
     opts_pts = dict(
         plot=dict(
             frame_width=600,
@@ -1765,7 +1759,7 @@ def visualize_seeds(
         vdims = ["seeds", mask]
     else:
         vdims = ["seeds"]
-        opts_pts["style"]["color"] = "white"
+        opts_pts = dict(color = "white")
     im = hv.Image(max_proj, kdims=["width", "height"])
     pts = hv.Points(seeds, kdims=["width", "height"], vdims=vdims)
     return im.opts(**opts_im) * pts.opts(**opts_pts)
