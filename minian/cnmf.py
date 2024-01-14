@@ -84,7 +84,7 @@ def get_noise_fft(
         kwargs=dict(
             noise_range=noise_range, noise_method=noise_method, threads=threads
         ),
-        output_dtypes=[float],
+        output_dtypes=[np.float64],
     )
     return sn
 
@@ -122,9 +122,7 @@ def noise_fft(
     """
     _T = len(px)
     nr = np.around(np.array(noise_range) * _T).astype(int)
-    temp = px.astype(np.float128)
-    temp = 1 / _T * np.abs(numpy_fft.rfft(temp, threads=threads)[nr[0] : nr[1]]) ** 2
-    px = temp.astype(np.float64)
+    px = 1 / _T * np.abs(np.fft.rfft(px)[nr[0] : nr[1]]) ** 2
     if noise_method == "mean":
         return np.sqrt(px.mean())
     elif noise_method == "median":
@@ -377,7 +375,7 @@ def update_spatial(
     Y_trans = Y.transpose("height", "width", "frame")
     # take fast route if a lot of chunks are empty
     if ssub.sum() < 500:
-        A_new = np.empty(sub.data.numblocks, dtype=object)
+        A_new0 = np.empty(sub.data.numblocks[:-1], dtype=object)
         for (hblk, wblk), has_unit in np.ndenumerate(ssub):
             cur_sub = sub.data.blocks[hblk, wblk, :]
             if has_unit:
@@ -387,11 +385,11 @@ def update_spatial(
                     cur_sub,
                     C_store=C_store,
                     f=f_in,
-                )
+                ).map_blocks(sparse.COO)
             else:
-                cur_blk = darr.array(sparse.zeros((cur_sub.shape)))
-            A_new[hblk, wblk, 0] = cur_blk
-        A_new = darr.block(A_new)
+                cur_blk = darr.array(sparse.zeros((cur_sub.shape))).map_blocks(sparse.COO)
+            A_new0[hblk, wblk] = [cur_blk]
+        A_new = darr.block(A_new0.tolist())
     else:
         A_new = update_spatial_block(
             Y_trans.data,
@@ -613,9 +611,9 @@ def compute_trace(
     """
     fms = Y.coords["frame"]
     uid = A.coords["unit_id"]
-    Y = Y.data
-    A = darr.from_array(A.data.map_blocks(sparse.COO).compute(), chunks=-1)
-    C = C.data.map_blocks(sparse.COO).T
+    Y = Y.fillna(0).data
+    A = darr.from_array(A.fillna(0).data.map_blocks(sparse.COO).compute(), chunks=-1)
+    C = C.fillna(0).data.map_blocks(sparse.COO).T
     b = (
         b.fillna(0)
         .data.map_blocks(sparse.COO)
@@ -856,14 +854,14 @@ def update_temporal(
     intpath = os.environ["MINIAN_INTERMEDIATE"]
     if YrA is None:
         YrA = compute_trace(Y, A, b, C, f).persist()
-    Ymask = (YrA > 0).any("frame").compute()
+    Ymask = (YrA > 0).any("frame").compute().coords["unit_id"].values
     A, C, YrA = A.sel(unit_id=Ymask), C.sel(unit_id=Ymask), YrA.sel(unit_id=Ymask)
     print("grouping overlaping units")
     A_sps = (A.data.map_blocks(sparse.COO) > 0).compute().astype(np.float32)
     A_inter = sparse.tensordot(A_sps, A_sps, axes=[(1, 2), (1, 2)])
     A_usum = np.tile(A_sps.sum(axis=(1, 2)).todense(), (A_sps.shape[0], 1))
     A_usum = A_usum + A_usum.T
-    jac = scipy.sparse.csc_matrix(A_inter / (A_usum - A_inter) > jac_thres)
+    jac = (A_inter / (A_usum - A_inter) > jac_thres).tocsc()
     unit_labels = label_connected(jac)
     YrA = YrA.assign_coords(unit_labels=("unit_id", unit_labels))
     print("updating temporal components")
@@ -1517,7 +1515,7 @@ def label_connected(adj: np.ndarray, only_connected=False) -> np.ndarray:
         g = nx.from_numpy_array(adj)
     except:
         g = nx.from_scipy_sparse_array(adj)
-    labels = np.zeros(adj.shape[0], dtype=int)
+    labels = np.zeros(adj.shape[0], dtype=np.int64)
     for icomp, comp in enumerate(nx.connected_components(g)):
         comp = list(comp)
         if only_connected and len(comp) == 1:
@@ -1598,9 +1596,9 @@ def filt_fft(x: np.ndarray, freq: float, btype: str) -> np.ndarray:
         zero_range = slice(int(freq * _T), None)
     elif btype == "high":
         zero_range = slice(None, int(freq * _T))
-    xfft = numpy_fft.rfft(x)
+    xfft = np.fft.rfft(x)
     xfft[zero_range] = 0
-    return numpy_fft.irfft(xfft, len(x))
+    return np.fft.irfft(xfft, len(x))
 
 
 def filt_butter(x: np.ndarray, freq: float, btype: str) -> np.ndarray:
@@ -1801,8 +1799,8 @@ def graph_optimize_corr(
             npxs.append(len(pixels))
             pixels = set()
             eg_ls = []
-    #print("pixel recompute ratio: {}".format(sum(npxs) / G.number_of_nodes()))
-    #print("computing correlations")
+    print("pixel recompute ratio: {}".format(sum(npxs) / G.number_of_nodes()))
+    print("computing correlations")
     corr_ls = da.compute(corr_ls)[0]
     corr = pd.Series(np.concatenate(corr_ls), index=np.concatenate(idx_ls), name="corr")
     eg_df["corr"] = corr

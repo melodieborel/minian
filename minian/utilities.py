@@ -444,7 +444,7 @@ def save_minian(
     overwrite=False,
     chunks: Optional[dict] = None,
     compute=True,
-    mem_limit="2000MB",
+    mem_limit="500MB",
 ) -> xr.DataArray:
     """
     Save a `xr.DataArray` with `zarr` storage backend following minian
@@ -522,7 +522,6 @@ def save_minian(
         except FileNotFoundError:
             pass
     arr = ds.to_zarr(fp, compute=compute, mode=md)
-    print(ds.dims)
     if (chunks is not None) and compute:
         chunks = {d: var.sizes[d] if v <= 0 else v for d, v in chunks.items()}
         dst_path = os.path.join(dpath, str(uuid4()))
@@ -832,12 +831,11 @@ class TaskAnnotation(SchedulerPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.annt_dict = ANNOTATIONS
-    """
+
     def update_graph(self, scheduler, client, keys, tasks, **kwargs):
         parent = cast(SchedulerState, scheduler)
-        for tk0 in keys:
-            tk = tk0[0]
-            print(tk)
+        for tk in keys:
+            tk = tk[0]
             for pattern, annt in self.annt_dict.items():
                 if re.search(pattern, tk):
                     ts = parent._tasks.get(tk)
@@ -848,7 +846,7 @@ class TaskAnnotation(SchedulerPlugin):
                     if pri:
                         pri_org = list(ts._priority)
                         pri_org[0] = -pri
-                        ts._priority = tuple(pri_org)"""
+                        ts._priority = tuple(pri_org)
 
 
 def custom_arr_optimize(

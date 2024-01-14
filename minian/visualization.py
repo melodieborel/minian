@@ -1880,7 +1880,7 @@ def visualize_spatial_update(
         hv_pts_dict[key] = hv.Points(
             cents_df, kdims=["width", "height"], vdims=["unit_id"]
         ).opts(
-            plot=dict(tools=["hover"]), style=dict(fill_alpha=0.2, line_alpha=0, size=8)
+            tools=["hover"],fill_alpha=0.2, line_alpha=0, size=8
         )
         hv_A_dict[key] = hv.Image(
             A.sum("unit_id").rename("A"), kdims=["width", "height"]
@@ -2072,18 +2072,20 @@ def visualize_temporal_update(
         hv_unit = Dynamic(hv_unit)
     hv_pul = Dynamic(hv_pul)
     hv_unit = hv_unit.map(
-        lambda p: p.opts(plot=dict(frame_height=400, frame_width=1000))
+        lambda p: p.options(frame_height=400, frame_width=1000)
     )
-    hv_pul = hv_pul.opts(plot=dict(frame_width=500, aspect=w / h)).redim(
+    hv_pul = hv_pul.opts(frame_width=500, aspect=w / h).redim(
         t=hv.Dimension("t", soft_range=pul_range)
     )
-    hv_A = hv_A.opts(
-        plot=dict(frame_width=500, aspect=w / h), style=dict(cmap="Viridis")
-    )
+    hv_A = hv_A.opts(frame_width=500, aspect=w / h, cmap="Viridis")
     return (
         hv_unit.relabel("Current Unit: Temporal Traces")
         + hv.NdLayout(
-            {"Simulated Pulse Response": hv_pul, "Spatial Footprint": hv_A},
+            {"Simulated Pulse Response": hv_pul},
+            kdims="Current Unit",
+        )
+        + hv.NdLayout(
+            {"Spatial Footprint": hv_A},
             kdims="Current Unit",
         )
     ).cols(1)

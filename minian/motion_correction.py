@@ -515,7 +515,7 @@ def est_motion_perframe(
     --------
     estimate_motion : for detailed explanation of parameters
     """
-    sh,err,phaseDiff = phase_cross_correlation(
+    sh, error, phasediff = phase_cross_correlation(
         src,
         dst,
         upsample_factor=upsample,
